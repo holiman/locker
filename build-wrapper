@@ -4,10 +4,15 @@ set -euf -o pipefail
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]:-$0}"; )" &> /dev/null && pwd 2> /dev/null; )";
 
 BYTECODE="$(eas "$SCRIPT_DIR/src/main.etk")"
+CONSTRUCTOR_CODE="$(eas "$SCRIPT_DIR/src/ctor.etk")"
+CONSTRUCTOR_ALT_CODE="$(eas "$SCRIPT_DIR/src/ctor2.etk")"
 
 sed \
     -e "s/@bytecode@/$BYTECODE/" \
+    -e "s/@constructor@/$CONSTRUCTOR_CODE/" \
+    -e "s/@constructor_alt_code@/$CONSTRUCTOR_ALT_CODE/" \
     "$SCRIPT_DIR/test/Contract.t.sol.in" > "$SCRIPT_DIR/test/Contract.t.sol"
+
 
 forge "$@" --evm-version shanghai -vvv
 

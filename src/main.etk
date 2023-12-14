@@ -9,40 +9,32 @@
         0xfffffffffffffffffffffffffffffffffffffffe
 %end
 
-# ----------    macros  -----------------
-
-%macro do_return()
-        push0           # [0]
-        push0           # [0, 0]
-        return          # []
-%end
+# Code below only jumps forward. 
 
 # ----------     code   ----------------
 
         # if msg.sender is not owner, just return
         
-        caller          # [caller]
-        push20 owner()  # [caller, owner]
-        eq              # [ caller == owner ]
-        push1 schedule  # [ caller == owner, label:schedule ]
+        push20 owner()  # [owner]
+        caller          # [owner, caller]
+        eq              # [caller == owner]
+        iszero          # [caller != owner]
+        push1 exit      # [caller != owner, label:exit ]
         jumpi           # []
 
-        # fallthrough, caller is not the owner
-        
-        %do_return()
 
-schedule:
-        jumpdest
-        
-        # msg.sender is owner, and stack is empty.
-        # Does the call contain a new schedule? 
-        
+        # At this point, caller == owner.
+
         calldatasize    # [calldatasize]
         iszero          # [calldatasize == 0]
         push2 payout    # [calldatasize == 0, payout-label]
         jumpi
 
+
         # fallthrough, owner sent a new schedule
+        #
+        # slot[0] = amount << 128 | (time+week) 
+        #
 
         push0            # [0]
         calldataload     # [calldata[0..32]]
@@ -54,7 +46,8 @@ schedule:
         or               # [ amount << 128 || timestamp + week_seconds] 
         push0            # [ amount << 128 || timestamp + week_seconds, 0]
         sstore           # []
-        %do_return()
+        push1 exit
+        jump
 
 payout: 
         jumpdest
@@ -67,9 +60,8 @@ payout:
         gt               # [slot_0, release_time < timestamp]
         push1 do_payout  # [slot_0, release_time < timestamp, do_payout-label] 
         jumpi
-        push0            # [slot_0, 0, 0]
-        push0            # [slot_0, 0, 0]
-        revert           # [slot_0]
+        push1 panic
+        jump
 
 do_payout:
         jumpdest
@@ -88,15 +80,19 @@ do_payout:
         push0 
         sstore           # slot[0] = 0
 
-        call
+        call             # [ call status (0 = failure, 1 = success)]
+        push1 exit       # [ call_sucess?, exit-label ]
+        jumpi            # []
 
-        iszero           # [ call status]
-        push1 panic
-        jumpi
-        %do_return()
-
+        # otherwise fall through to panic
 panic:
         jumpdest
         push0
         push0
         revert # revert (0,0)
+
+exit:
+        jumpdest
+        push0
+        push0
+        return

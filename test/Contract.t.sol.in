@@ -19,8 +19,10 @@ contract ContractTest is Test {
 
     // testAuth verifies that a non-owner cannot do stuff, but _can_ send it money
     function testUnAuth() public {
-        // Give it 5 ether to start with
-        deal(unit, 5);
+        // Set reasonable timestamp, give it some ether
+        vm.warp(1641070800);
+        vm.deal(unit, 5);
+
         // Store timestamp:value as 1 wei at time '10'
         vm.store(unit, 0, bytes32(uint256(1) << 128 | uint256(0xa)));
 
@@ -40,14 +42,13 @@ contract ContractTest is Test {
     }
 
     function testAuth() public {
-
-        // Set reasonable timestamp.
+        // Set reasonable timestamp, give it some ether
         vm.warp(1641070800);
+        vm.deal(unit, 5);
+
         // Store timestamp:value as 1 wei at time '10'
         vm.store(unit, 0, bytes32(uint256(1) << 128 | uint256(0xa)));
 
-        // Give it 5 ether to start with
-        deal(unit, 5);
         // Give ourselves 1000, and make us the owner
         hoax(owner, 1000);
 
@@ -64,7 +65,6 @@ contract ContractTest is Test {
 
 
     function testSchedule() public {
-
         // Set reasonable timestamp, give it some ether
         vm.warp(1641070800);
         vm.deal(unit, 5);
@@ -84,6 +84,15 @@ contract ContractTest is Test {
         assertFalse(ret, "collecting ether should revert");
         assertEq(unit.balance,  5, "balance should be unchanged");
 
+
+        // Go forward in time (but not enough), verify money cannot be collected
+        vm.warp(1641070800 + 60 * 60 * 24 * 7 - 1);
+        vm.prank(owner);
+        (ret, ) = unit.call("");
+        assertFalse(ret, "collecting ether should revert");
+        assertEq(unit.balance,  5, "balance should be unchanged");
+
+
         // Go forward in time, verify collect money
         vm.warp(1641070800 + 60 * 60 * 24 * 7 + 1);
         vm.prank(owner);
@@ -96,7 +105,26 @@ contract ContractTest is Test {
         assertEq(bytes32(uint256(0x0)), vm.load(unit, 0));
     }
 
-    // TODO:
-    // - Test codepath where ether-transfer to owner fails, 
+    //testCallbackFail tests codepath where ether-transfer to owner fails. This is 
+    // expected to trigger a revert, so the storage changes are not applied. 
+    function testCallbackFail() public{
+
+        // Set reasonable timestamp, give it some ether
+        vm.warp(1641070800);
+        vm.deal(unit, 5);
+
+        // "insufficient stack depth" -error at owner
+        // JUMPDEST
+        vm.etch(owner, hex"50");
+
+        // Store timestamp:value as 1 wei at time '0', give it some ether
+        vm.store(unit, 0, bytes32(uint256(1) << 128 | uint256(0xa)));
+
+        // trigger payout
+        vm.prank(owner);
+        (bool ret, ) = unit.call("");
+
+        assertFalse(ret, "operation should revert");
+    }
 
 }
