@@ -1,0 +1,23 @@
+# We want to get '0x73' (push20) followed by the caller/owner, followed by the contract, into memory. 
+# 73 .. fffffffffffffffffffffffffffffffffffffff .. e331 
+
+push1 0x73        # [0x73]
+push0             # [0x74, 0]
+mstore            # []
+
+caller            # [caller]
+push1 1           # [caller, 1]
+mstore            # [] 
+
+
+%push(end - start) # [size]
+%push(start)       # [size, codestart]
+push1 21           # [size, codestart, 21]
+codecopy           # []
+msize              # [memsize]
+push0              # [memsize, 0]
+return             # []
+
+start:
+%include("main.etk")
+end:
