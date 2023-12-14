@@ -1,0 +1,102 @@
+# ----------  constants -----------------
+
+# TODO: investigate if / how to set the owner during 
+# the constructor, so that it uses msg.sender. 
+# Drawback: this might be problematic for tests, which 
+# uses 'etch'. 
+
+%def owner()
+        0xfffffffffffffffffffffffffffffffffffffffe
+%end
+
+# ----------    macros  -----------------
+
+%macro do_return()
+        push0           # [0]
+        push0           # [0, 0]
+        return          # []
+%end
+
+# ----------     code   ----------------
+
+        # if msg.sender is not owner, just return
+        
+        caller          # [caller]
+        push20 owner()  # [caller, owner]
+        eq              # [ caller == owner ]
+        push1 schedule  # [ caller == owner, label:schedule ]
+        jumpi           # []
+
+        # fallthrough, caller is not the owner
+        
+        %do_return()
+
+schedule:
+        jumpdest
+        
+        # msg.sender is owner, and stack is empty.
+        # Does the call contain a new schedule? 
+        
+        calldatasize    # [calldatasize]
+        iszero          # [calldatasize == 0]
+        push2 payout    # [calldatasize == 0, payout-label]
+        jumpi
+
+        # fallthrough, owner sent a new schedule
+
+        push0            # [0]
+        calldataload     # [calldata[0..32]]
+        push1 128        # [calldata[0..32], 128]
+        shl              # [amount << 128]
+        timestamp        # [amount << 128, timestamp]
+        push3 0x93a80    # [ amount << 128, timestamp, week_seconds] // 60 * 60 * 24 * 7 seconds 
+        add              # [ amount << 128, timestamp + week_seconds]
+        or               # [ amount << 128 || timestamp + week_seconds] 
+        push0            # [ amount << 128 || timestamp + week_seconds, 0]
+        sstore           # []
+        %do_return()
+
+payout: 
+        jumpdest
+        push0            # [0]
+        sload            # [slot_0 ]
+        dup1             # [slot_0, slot_0]
+        push4 0xffffffff # [slot_0, slot_0, 0xffffffff]
+        and              # [slot_0, release_time]
+        timestamp        # [slot_0, release_time, timestamp]
+        gt               # [slot_0, release_time < timestamp]
+        push1 do_payout  # [slot_0, release_time < timestamp, do_payout-label] 
+        jumpi
+        push0            # [slot_0, 0, 0]
+        push0            # [slot_0, 0, 0]
+        revert           # [slot_0]
+
+do_payout:
+        jumpdest
+        push1 128        # [slot_0, 128]
+        shr              # [ value ]
+        push0            # [ value, 0 ]
+        push0            # [ value, 0, 0 ]
+        push0            # [ value, 0, 0, 0 ]
+        push0            # [ value, 0, 0, 0, 0 ]
+        swap4            # [ 0, 0, 0, 0, value]
+
+        caller           # [ 0, 0, 0, 0, value, address]  
+        gas              # [ 0, 0, 0, 0, value, address, gas]
+        
+        push0            
+        push0 
+        sstore           # slot[0] = 0
+
+        call
+
+        iszero           # [ call status]
+        push1 panic
+        jumpi
+        %do_return()
+
+panic:
+        jumpdest
+        push0
+        push0
+        revert # revert (0,0)

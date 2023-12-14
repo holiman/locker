@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import "forge-std/Test.sol";
+import "../src/Contract.sol";
+
+
+address constant owner = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+address constant addr = 0x000000000000000000000000000000000000000b;
+
+
+contract ContractTest is Test {
+    address unit;
+
+    function setUp() public {
+        vm.etch(addr, hex"@bytecode@");
+        unit = addr;
+    }
+
+    // testAuth verifies that a non-owner cannot do stuff, but _can_ send it money
+    function testUnAuth() public {
+        // Give it 5 ether to start with
+        deal(unit, 5);
+        // Store timestamp:value as 1 wei at time '10'
+        vm.store(unit, 0, bytes32(uint256(1) << 128 | uint256(0xa)));
+
+        // call it with some data
+        (bool ret, ) = unit.call(bytes.concat(bytes32(uint256(0))));
+        assertTrue(ret, "bar");
+
+        // it should still have balance of 5
+        assertEq(unit.balance,  5, "test");
+
+        // call it with some data + some value
+        (ret, ) = unit.call{value:1}(bytes.concat(bytes32(uint256(0))));
+        assertTrue(ret, "foo");
+
+        // it should now have balance of 6
+        assertEq(unit.balance,  6, "tested");
+    }
+
+    function testAuth() public {
+
+        // Set reasonable timestamp.
+        vm.warp(1641070800);
+        // Store timestamp:value as 1 wei at time '10'
+        vm.store(unit, 0, bytes32(uint256(1) << 128 | uint256(0xa)));
+
+        // Give it 5 ether to start with
+        deal(unit, 5);
+        // Give ourselves 1000, and make us the owner
+        hoax(owner, 1000);
+
+        // call it with no data (it should send us 1 wei)
+        (bool ret, ) = unit.call("");
+        assertTrue(ret, "bar");
+
+        // it have balance of 4
+        assertEq(unit.balance,  4);
+
+        // we should have a balance of 1001
+        assertEq(owner.balance,  1001);
+    }
+
+
+    function testSchedule() public {
+
+        // Set reasonable timestamp, give it some ether
+        vm.warp(1641070800);
+        vm.deal(unit, 5);
+
+        // Schedule 1 wei (a week from now), verify that the storage slot is as expected
+
+        vm.prank(owner);
+        (bool ret,) = unit.call(hex"0000000000000000000000000000000000000000000000000000000000000001");
+        assertTrue(ret, "scheduling should be fine");
+        bytes32 want = bytes32( uint256(0x1)<< 128 | uint256(1641070800 + 60 * 60 * 24 * 7));
+        bytes32 have = vm.load(unit, 0);
+        assertEq(have, want);
+
+        // Verify revert nothing happens if we try to obtain money
+        vm.prank(owner);
+        (ret, ) = unit.call("");
+        assertFalse(ret, "collecting ether should revert");
+        assertEq(unit.balance,  5, "balance should be unchanged");
+
+        // Go forward in time, verify collect money
+        vm.warp(1641070800 + 60 * 60 * 24 * 7 + 1);
+        vm.prank(owner);
+        (ret, ) = unit.call("");
+        assertTrue(ret, "collecting ether should not revert");
+        assertEq(unit.balance,  4, "balance should be changed");
+        assertEq(owner.balance,  1, "owner-balance should increase");
+
+        // There should be nothing scheduled
+        assertEq(bytes32(uint256(0x0)), vm.load(unit, 0));
+    }
+
+    // TODO:
+    // - Test codepath where ether-transfer to owner fails, 
+
+}
