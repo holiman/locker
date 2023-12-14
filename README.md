@@ -30,3 +30,20 @@ Caveats:
 ./build-wrapper test
 ```
 
+### Code
+
+Runtime bytecode (owner `0xfffffffffffffffffffffffffffffffffffffffe`)
+```
+73fffffffffffffffffffffffffffffffffffffffe331415605a573615610032575f3560801b4262093a8001175f55605a565b5f548063ffffffff1642116044576056565b60801c5f5f5f5f93335a5f5f55f1605a575b5f5ffd5b5f5ff3
+```
+
+
+Constructor code (owner `0xfffffffffffffffffffffffffffffffffffffffe`)
+```
+605e8060095f395ff373fffffffffffffffffffffffffffffffffffffffe331415605a573615610032575f3560801b4262093a8001175f55605a565b5f548063ffffffff1642116044576056565b60801c5f5f5f5f93335a5f5f55f1605a575b5f5ffd5b5f5ff3
+```
+
+Constructor code (sender becomes owner):
+```
+605e600d5f3933600152595ff373fffffffffffffffffffffffffffffffffffffffe331415605a573615610032575f3560801b4262093a8001175f55605a565b5f548063ffffffff1642116044576056565b60801c5f5f5f5f93335a5f5f55f1605a575b5f5ffd5b5f5ff3
+```

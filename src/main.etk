@@ -1,21 +1,10 @@
-# ----------  constants -----------------
-
-# TODO: investigate if / how to set the owner during 
-# the constructor, so that it uses msg.sender. 
-# Drawback: this might be problematic for tests, which 
-# uses 'etch'. 
-
-%def owner()
-        0xfffffffffffffffffffffffffffffffffffffffe
-%end
-
-# Code below only jumps forward. 
 
 # ----------     code   ----------------
 
+        # owner should be already pushed to stack at this point.
         # if msg.sender is not owner, just return
         
-        push20 owner()  # [owner]
+        push20 0xfffffffffffffffffffffffffffffffffffffffe        # [owner]
         caller          # [owner, caller]
         eq              # [caller == owner]
         iszero          # [caller != owner]

@@ -1,22 +1,19 @@
-# We want to get '0x73' (push20) followed by the caller/owner, followed by the contract, into memory. 
-# 73 .. fffffffffffffffffffffffffffffffffffffff .. e331 
+# This constructor loads the contract as the normal constructur, but 
+# replaces the 0xFF.. owner with the 'caller', by just dumping in 
+# the msg.sender into offset 1. 
 
-push1 0x73        # [0x73]
-push0             # [0x74, 0]
-mstore            # []
+%push(end - start) 		# [codesize]
+%push(start)            # [codesize, codestart]
+push0                   # [codesize, codestart, 0]
+codecopy                # []
 
 caller            # [caller]
 push1 1           # [caller, 1]
 mstore            # [] 
 
-
-%push(end - start) # [size]
-%push(start)       # [size, codestart]
-push1 21           # [size, codestart, 21]
-codecopy           # []
-msize              # [memsize]
-push0              # [memsize, 0]
-return             # []
+msize                   # [memsize]
+push0                   # [memsize, 0]
+return
 
 start:
 %include("main.etk")

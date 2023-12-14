@@ -1,9 +1,9 @@
-%push(end - start)
-dup1
-%push(start)
-push0
-codecopy
-push0
+%push(end - start) 		# [codesize]
+dup1				    # [codesize, codesize]
+%push(start)            # [codesize, codesize, codestart]
+push0                   # [codesize, codesize, codestart, 0]
+codecopy                # [codesize]
+push0                   # [codesize, 0]
 return
 
 start:
