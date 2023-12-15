@@ -1,10 +1,18 @@
 
 # ----------     code   ----------------
 
-        # owner should be already pushed to stack at this point.
-        # if msg.sender is not owner, just return
+
+        # We are using push32 to push a silly address to the stack here. Why?
+        # The reason is that a constructor can replace this with 'msg.sender', 
+        # (or something from arguments). It is easier for a constructor to replace
+        # the full 32 bytes from the stack, using MSTORE, instead of doing 20 
+        # individual MSTORE8 operations to replace a 20-byte address. 
         
-        push20 0xfffffffffffffffffffffffffffffffffffffffe        # [owner]
+        push32 0xfffffffffffffffffffffffffffffffffffffffe        # [owner]
+
+
+        # if msg.sender is not owner, just return
+
         caller          # [owner, caller]
         eq              # [caller == owner]
         iszero          # [caller != owner]

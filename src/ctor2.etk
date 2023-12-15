@@ -3,16 +3,16 @@
 # the msg.sender into offset 1. 
 
 %push(end - start) 		# [codesize]
-%push(start)            # [codesize, codestart]
-push0                   # [codesize, codestart, 0]
-codecopy                # []
+dup1                    # [codesize, codesize]
+%push(start)            # [codesize, codesize, codestart]
+push0                   # [codesize, codesize, codestart, 0]
+codecopy                # [codesize]
 
-caller            # [caller]
-push1 1           # [caller, 1]
-mstore            # [] 
+caller            # [codesize, caller]
+push1 1           # [codesize, caller, 1]
+mstore            # [codesize] 
 
-msize                   # [memsize]
-push0                   # [memsize, 0]
+push0                   # [codesize, 0]
 return
 
 start:
